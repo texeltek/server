@@ -106,14 +106,20 @@ bash 'migrating to the lastest database version' do
 end
 
 # set up self-signed cert and key (in templates/default)
-cf_cert = File.join( node[:apache][:dir], 'ssl', 'codefoundry.crt' )
+cf_cert = File.join( node[:apache][:dir], 'ssl', 'localhost.cert.pem' )
 template cf_cert do
-  source "codefoundry.crt"
+  source "localhost.cert.pem"
 end
 
-cf_key = File.join( node[:apache][:dir], 'ssl', 'codefoundry.key' )
+cf_key = File.join( node[:apache][:dir], 'ssl', 'localhost.key.pem' )
 template cf_key do
-  source "codefoundry.key"
+  source "localhost.key.pem"
+end
+
+# set up cfdev CA certificate
+cf_ca_cert = File.join( node[:apache][:dir], 'ssl', 'cfdev-ca-cert.pem')
+template cf_ca_cert do
+  source "cfdev-ca-cert.pem"
 end
 
 # create the apache vhost for CF
@@ -123,6 +129,7 @@ web_app "codefoundry" do
   docroot app_path
   cert_path cf_cert
   key_path cf_key
+  cf_ca_cert_path cf_ca_cert
 end
 
 # (re)start the delayed_job service.  this should eventually be done through a

@@ -49,7 +49,7 @@ Vagrant::Config.run do |config|
           },
         :codefoundry => {
             :apps_path => "/var/www/vhosts",
-            :git_url => "git://github.com/rdblue/codefoundry.git",
+            :git_url => "git://github.com/texeltek/codefoundry.git",
             :git_ref => "master",
             :db_path => "/var/db",
             :db_type => "sqlite",

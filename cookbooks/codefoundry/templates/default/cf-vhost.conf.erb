@@ -1,7 +1,40 @@
-# everything over HTTP is redirected to HTTPS
+# We set up temporary HTTP access
+# to develop git support for CF.
+#
 <VirtualHost *:80>
   ServerName <%= @params[:server_name] %>
-  Redirect permanent / https://<%= @params[:server_name] %>/
+  <% if @params[:server_aliases] and @params[:server_aliases].respond_to? :map %>
+  ServerAlias <%= @params[:server_aliases].map { |a| "\"#{a}\"" }.join(' ') %>
+  <% end %>
+  DocumentRoot <%= @params[:docroot] %>/public
+
+  # rails settings
+  RailsBaseURI /
+  RailsEnv <%= node[:rails][:environment] %>
+  PassengerMaxPoolSize <%= node[:rails][:max_pool_size] %>
+
+  <Directory <%= @params[:docroot] %>>
+    Options FollowSymLinks
+    AllowOverride None
+    Order allow,deny
+    Allow from all
+  </Directory>
+
+  LogLevel info
+  ErrorLog <%= node[:apache][:log_dir] %>/<%= @params[:server_name] %>-error.log
+  CustomLog <%= node[:apache][:log_dir] %>/<%= @params[:server_name] %>-access.log combined
+
+  RewriteEngine On
+  RewriteLog <%= node[:apache][:log_dir] %>/<%= @application_name %>-rewrite.log
+  RewriteLogLevel 0
+  # Canonical host
+  RewriteCond %{HTTP_HOST}   !^<%= @params[:server_name] %> [NC]
+  RewriteCond %{HTTP_HOST}   !^$
+  RewriteRule ^/(.*)$        https://<%= @params[:server_name] %>/$1 [L,R=301]
+
+  RewriteCond %{DOCUMENT_ROOT}/system/maintenance.html -f
+  RewriteCond %{SCRIPT_FILENAME} !maintenance.html
+  RewriteRule ^.*$ /system/maintenance.html [L]
 </VirtualHost>
 
 <VirtualHost *:443>
@@ -17,6 +50,8 @@
   SSLCertificateFile <%= @params[:cert_path] %>
   SSLCertificateKeyFile <%= @params[:key_path] %>
   SSLOptions +StdEnvVars +FakeBasicAuth
+  SSLCertificateChainFile <%= @params[:cf_ca_cert_path] %>
+  SSLCACertificateFile <%= @params[:cf_ca_cert_path] %>
 
   # rails settings
   RailsBaseURI /
